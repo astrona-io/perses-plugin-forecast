@@ -1,0 +1,273 @@
+{
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "forecast",
+    "project": "demo"
+  },
+  "spec": {
+    "display": {
+      "name": "Forecast"
+    },
+    "duration": "14d",
+    "refreshInterval": "0s",
+    "variables": [],
+    "panels": {
+      "kafka": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "PVC usage \u00b7 data-kafka-0",
+            "description": "Forecast, 80% band and anomalies from a model that writes forecast_value, forecast_upper and forecast_lower with a horizon label."
+          },
+          "plugin": {
+            "kind": "ForecastChart",
+            "spec": {
+              "threshold": {
+                "value": 85,
+                "label": "quota"
+              },
+              "anomalyThreshold": 0.7,
+              "band": {
+                "opacity": 0.25,
+                "label": "80%"
+              },
+              "crossingCallout": true,
+              "anomalyLink": "https://logs.example.com/search?pod=${__series.labels.pod}&from=${__time_from}&to=${__time_to}",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "legend": {
+                "position": "bottom"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "100 * kubelet_volume_stats_used_bytes{persistentvolumeclaim=\"data-kafka-0\"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=\"data-kafka-0\"}",
+                    "seriesNameFormat": "{{persistentvolumeclaim}}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_value{persistentvolumeclaim=\"data-kafka-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_upper{persistentvolumeclaim=\"data-kafka-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_lower{persistentvolumeclaim=\"data-kafka-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "log_anomaly_score{pod=\"kafka-0\"}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "postgres": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "PVC usage \u00b7 data-postgres-0"
+          },
+          "plugin": {
+            "kind": "ForecastChart",
+            "spec": {
+              "threshold": {
+                "value": 85,
+                "label": "quota"
+              },
+              "anomalyThreshold": 0.7,
+              "band": {
+                "opacity": 0.25,
+                "label": "80%"
+              },
+              "crossingCallout": true,
+              "anomalyLink": "https://logs.example.com/search?pod=${__series.labels.pod}&from=${__time_from}&to=${__time_to}",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "legend": {
+                "position": "bottom"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "100 * kubelet_volume_stats_used_bytes{persistentvolumeclaim=\"data-postgres-0\"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=\"data-postgres-0\"}",
+                    "seriesNameFormat": "{{persistentvolumeclaim}}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_value{persistentvolumeclaim=\"data-postgres-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_upper{persistentvolumeclaim=\"data-postgres-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "forecast_lower{persistentvolumeclaim=\"data-postgres-0\"}"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "log_anomaly_score{pod=\"postgres-0\"}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "estimate": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Quick start \u00b7 data-kafka-0",
+            "description": "Only the usage query: the panel estimates the forecast in the browser (Holt-Winters)."
+          },
+          "plugin": {
+            "kind": "ForecastChart",
+            "spec": {
+              "threshold": {
+                "value": 85,
+                "label": "quota"
+              },
+              "quickStart": true,
+              "horizon": "21d",
+              "format": {
+                "unit": "percent",
+                "decimalPlaces": 0
+              },
+              "legend": {
+                "position": "bottom"
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "100 * kubelet_volume_stats_used_bytes{persistentvolumeclaim=\"data-kafka-0\"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=\"data-kafka-0\"}",
+                    "seriesNameFormat": "{{persistentvolumeclaim}}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 24,
+              "height": 11,
+              "content": {
+                "$ref": "#/spec/panels/kafka"
+              }
+            },
+            {
+              "x": 0,
+              "y": 11,
+              "width": 12,
+              "height": 9,
+              "content": {
+                "$ref": "#/spec/panels/postgres"
+              }
+            },
+            {
+              "x": 12,
+              "y": 11,
+              "width": 12,
+              "height": 9,
+              "content": {
+                "$ref": "#/spec/panels/estimate"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

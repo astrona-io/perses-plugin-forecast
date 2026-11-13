@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 30s
+scrape_configs:
+  - job_name: fake-metrics
+    static_configs:
+      - targets: ["fake-metrics:8000"]
+    metric_relabel_configs:
+      # The made-up series carry their own namespace; keep it.
+      - action: labeldrop
+        regex: (instance|job)

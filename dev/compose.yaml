@@ -1,0 +1,64 @@
+# A local Perses with the plugin, 14 days of made-up PVC usage, forecasts and anomaly scores.
+# See "Try it locally" in README.md. The containers wait for each other through files in the
+# volumes rather than depends_on, since the two init steps exit.
+name: perses-plugin-forecast
+
+services:
+  # Writes 14 days of history as OpenMetrics, then exits.
+  backfill:
+    image: docker.io/library/python:3.13-alpine
+    command: ["python", "-I", "/app/fake_metrics.py", "backfill", "/data"]
+    volumes:
+      - ./fake_metrics.py:/app/fake_metrics.py:ro,z
+      - history:/data
+
+  # Turns the history into Prometheus blocks, then exits.
+  tsdb-init:
+    image: docker.io/prom/prometheus:v3.5.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until [ -f /data/start ]; do sleep 1; done;
+        [ -f /prometheus/.backfilled ] ||
+        (promtool tsdb create-blocks-from openmetrics /data/backfill.om /prometheus
+        && touch /prometheus/.backfilled)
+    volumes:
+      - history:/data:ro
+      - tsdb:/prometheus
+
+  # Serves the same series live, continuing the history.
+  fake-metrics:
+    image: docker.io/library/python:3.13-alpine
+    command: ["python", "-I", "/app/fake_metrics.py", "serve", "/data"]
+    volumes:
+      - ./fake_metrics.py:/app/fake_metrics.py:ro,z
+      - history:/data:ro
+
+  prometheus:
+    image: docker.io/prom/prometheus:v3.5.0
+    # Starts once tsdb-init has loaded the history.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until [ -f /prometheus/.backfilled ]; do sleep 1; done;
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml
+        --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=60d
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro,z
+      - tsdb:/prometheus
+
+  perses:
+    image: docker.io/persesdev/perses:v0.55.1
+    command: ["--config", "/etc/perses/config.yaml"]
+    ports:
+      - "127.0.0.1:${PERSES_PORT:-18081}:8080"
+    volumes:
+      - ./perses.yaml:/etc/perses/config.yaml:ro,z
+      - ./provisioning:/etc/perses/provisioning:ro,z
+      # Holds Forecast-<version>.tar.gz from `percli plugin build`.
+      - ./archive:/etc/perses/plugins-archive-forecast:ro,z
+    depends_on: [prometheus]
+
+volumes:
+  history:
+  tsdb:
