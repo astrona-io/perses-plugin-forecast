@@ -228,6 +228,26 @@ function runs<T>(
   return out;
 }
 
+/** Band excursions closer than this are one anomaly (a spike and the model's recoil after it). */
+const MERGE_GAP_MS = 3_600_000;
+/** A band anomaly is at least this many half-band-widths from the expected value. */
+const MIN_BAND_MULTIPLE = 1.5;
+
+function mergeClose(
+  spans: Array<[number, number]>,
+  points: Point[],
+  gapMs: number,
+): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const span of spans) {
+    const last = out[out.length - 1];
+    if (last && points[span[0]]!.t - points[last[1]]!.t <= gapMs)
+      last[1] = span[1];
+    else out.push([span[0], span[1]]);
+  }
+  return out;
+}
+
 export function findAnomalies(input: {
   actual: Point[];
   actualLabels: Record<string, string>;
@@ -277,7 +297,11 @@ export function findAnomalies(input: {
     return (up !== undefined && p.v > up) || (lo !== undefined && p.v < lo);
   };
   const result: Anomaly[] = [];
-  for (const [a, b] of runs(history, outside)) {
+  for (const [a, b] of mergeClose(
+    runs(history, outside),
+    history,
+    MERGE_GAP_MS,
+  )) {
     let best = history[a]!;
     let bestDist = -1;
     for (let i = a; i <= b; i++) {
@@ -293,6 +317,15 @@ export function findAnomalies(input: {
         best = p;
       }
     }
+    // A brush with the band edge is noise; an anomaly is well outside it.
+    const up = valueAt(expectedUpper, best.t);
+    const lo = valueAt(expectedLower, best.t);
+    if (
+      up !== undefined &&
+      lo !== undefined &&
+      bestDist < (MIN_BAND_MULTIPLE * (up - lo)) / 2
+    )
+      continue;
     result.push({
       ...context(best),
       reasons: ["band"],

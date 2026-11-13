@@ -106,11 +106,31 @@ function holtWinters(
   return { fitted, level, trend, season, next: y.length };
 }
 
+/** Standard error of an ordinary least-squares slope through `y` (per grid step). */
+export function trendStandardError(y: number[]): number {
+  const n = y.length;
+  if (n < 3) return 0;
+  const tMean = (n - 1) / 2;
+  let yMean = 0;
+  for (const v of y) yMean += v / n;
+  let sxx = 0;
+  let sxy = 0;
+  for (let i = 0; i < n; i++) {
+    sxx += (i - tMean) ** 2;
+    sxy += (i - tMean) * (y[i]! - yMean);
+  }
+  const slope = sxy / sxx;
+  let sse = 0;
+  for (let i = 0; i < n; i++)
+    sse += (y[i]! - (yMean + slope * (i - tMean))) ** 2;
+  return Math.sqrt(sse / (n - 2) / sxx);
+}
+
 /**
  * A quick in-browser forecast of `points` for `horizonMs` ahead: additive Holt-Winters with a
  * daily season when the history holds at least two days on a grid fine enough for it, otherwise
- * Holt's linear trend. The 80% band comes from the one-step residuals, widened with the horizon as
- * for Holt's method. Undefined when there are fewer than 3 usable samples.
+ * Holt's linear trend. The 80% band comes from the one-step residuals and the trend's standard
+ * error, widened with the horizon. Undefined when there are fewer than 3 usable samples.
  */
 export function estimate(
   points: Point[],
@@ -154,14 +174,18 @@ export function estimate(
   const forecast: Point[] = [{ t: last, v: lastLevel }];
   const upper: Point[] = [{ t: last, v: lastLevel }];
   const lower: Point[] = [{ t: last, v: lastLevel }];
-  // Var(h) = sigma^2 * (1 + sum_{j=1}^{h-1} (alpha * (1 + j * beta))^2), Holt's additive method.
-  let acc = 1;
+  // Two sources of error, added as variances: the level wanders like a random walk driven by the
+  // one-step residuals (sigma^2 * (1 + alpha^2 * h)), and the trend is only known to within its
+  // standard error, which grows linearly with the horizon. The textbook Holt variance assumes the
+  // smoothing constants are right and explodes on fine grids, which is worse than this for a
+  // quick estimate.
+  const slopeSe = trendStandardError(values);
   for (let h = 1; h <= steps; h++) {
-    if (h > 1) acc += (alpha * (1 + (h - 1) * beta)) ** 2;
     if (h % every !== 0 && h !== steps) continue;
     const s = fit.season.length ? fit.season[(fit.next + h - 1) % m]! : 0;
     const v = fit.level + h * fit.trend + s;
-    const w = Z80 * sigma * Math.sqrt(acc);
+    const w =
+      Z80 * Math.sqrt(sigma ** 2 * (1 + alpha ** 2 * h) + (h * slopeSe) ** 2);
     const t = last + h * step;
     forecast.push({ t, v });
     upper.push({ t, v: v + w });
