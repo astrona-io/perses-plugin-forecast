@@ -1,0 +1,14 @@
+{
+  "kind": "ForecastChart",
+  "spec": {
+    "roles": { "actual": 0, "forecast": 1, "upper": 2, "lower": 3, "anomaly": 4 },
+    "threshold": { "value": 85, "label": "quota", "direction": "above" },
+    "anomalyThreshold": 0.7,
+    "band": { "opacity": 0.25, "label": "80%" },
+    "quickStart": false,
+    "crossingCallout": true,
+    "anomalyLink": "/explore?from=${__time_from}&to=${__time_to}&pod=${__series.labels.pod}",
+    "format": { "unit": "percent", "decimalPlaces": 0 },
+    "legend": { "position": "bottom" }
+  }
+}
