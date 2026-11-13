@@ -1,0 +1,10 @@
+perses-plugin-forecast
+Copyright 2026 Astrona
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It includes or is built from the following third-party material:
+
+- Perses shared CUE schemas (https://github.com/perses/shared), vendored into
+  the plugin archive at build time. Apache License 2.0, Copyright The Perses
+  Authors.

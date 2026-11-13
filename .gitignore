@@ -1,0 +1,28 @@
+.idea/
+
+# Local
+.DS_Store
+*.local
+*.log*
+
+# Dist
+node_modules
+dist/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# generated archives
+*.tar.gz
+
+# external CUE dependencies
+/*/cue.mod/pkg/
+/cue.mod/pkg/
+
+# Python bytecode from the dev stack
+__pycache__/
+
+# archive checksums written by the release workflow
+*.sha256
