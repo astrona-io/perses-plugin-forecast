@@ -421,11 +421,18 @@ export function buildModel(
   const timeRange = queryResults.find((r) => r.data?.timeRange)?.data.timeRange;
   const toMs = (d: Date | number | undefined): number | undefined =>
     d === undefined ? undefined : new Date(d).getTime();
-  const allTimes = [actual, fs.past, fs.future, us.future, ls.future]
-    .flat()
-    .map((p) => p.t);
-  const dataStart = allTimes.length ? Math.min(...allTimes) : now - 3_600_000;
-  const dataEnd = allTimes.length ? Math.max(...allTimes) : now;
+  let dataStart = Infinity;
+  let dataEnd = -Infinity;
+  for (const list of [actual, fs.past, fs.future, us.future, ls.future]) {
+    // Sorted by time: the ends are enough.
+    if (list.length === 0) continue;
+    dataStart = Math.min(dataStart, list[0]!.t);
+    dataEnd = Math.max(dataEnd, list[list.length - 1]!.t);
+  }
+  if (!Number.isFinite(dataStart)) {
+    dataStart = now - 3_600_000;
+    dataEnd = now;
+  }
   const start = toMs(timeRange?.start) ?? dataStart;
   const end = Math.max(toMs(timeRange?.end) ?? dataEnd, dataEnd);
 

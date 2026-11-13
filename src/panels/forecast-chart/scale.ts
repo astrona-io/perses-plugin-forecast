@@ -18,11 +18,11 @@ export function niceTicks(min: number, max: number, count = 5): number[] {
   const raw = (max - min) / Math.max(1, count);
   const mag = 10 ** Math.floor(Math.log10(raw));
   const norm = raw / mag;
-  const step = (norm >= 5 ? 10 : norm >= 2 ? 5 : norm >= 1 ? 2 : 1) * mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
   const ticks: number[] = [];
   const first = Math.ceil(min / step - 1e-9) * step;
   for (let v = first; v <= max + step * 1e-9; v += step) {
-    ticks.push(Math.round(v / step) * step);
+    ticks.push(Math.round(v / step) * step || 0);
   }
   return ticks;
 }
@@ -34,8 +34,12 @@ export function yDomain(
 ): [number, number] {
   const all = [...values, ...extra].filter(Number.isFinite);
   if (all.length === 0) return [0, 1];
-  let min = Math.min(...all);
-  let max = Math.max(...all);
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of all) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
   if (min >= 0) min = 0;
   if (min === max) max = min + 1;
   const pad = (max - min) * 0.05;
