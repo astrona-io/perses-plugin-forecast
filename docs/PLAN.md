@@ -12,13 +12,13 @@ says why.
 The panel reads `TimeSeriesQuery` results (Prometheus, or anything that returns time series). Each
 query is given a **role** by its index in the panel's query list (`roles`):
 
-| Role       | Typical query                                                                   | Use                                        |
-| ---------- | ------------------------------------------------------------------------------- | ------------------------------------------ |
-| `actual`   | `kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100`   | the solid line                             |
-| `forecast` | `forecast_value{persistentvolumeclaim="data-kafka-0"}`                          | the dashed line, and "expected" in history |
-| `upper`    | `forecast_upper{...}`                                                           | top of the band                            |
-| `lower`    | `forecast_lower{...}`                                                           | bottom of the band                         |
-| `anomaly`  | `log_anomaly_score{namespace="data"}`                                           | score or 0/1 flag; markers above a cutoff  |
+| Role       | Typical query                                                                 | Use                                        |
+| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| `actual`   | `kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes * 100` | the solid line                             |
+| `forecast` | `forecast_value{persistentvolumeclaim="data-kafka-0"}`                        | the dashed line, and "expected" in history |
+| `upper`    | `forecast_upper{...}`                                                         | top of the band                            |
+| `lower`    | `forecast_lower{...}`                                                         | bottom of the band                         |
+| `anomaly`  | `log_anomaly_score{namespace="data"}`                                         | score or 0/1 flag; markers above a cutoff  |
 
 Default roles: `actual` 0, `forecast` 1, `upper` 2, `lower` 3, `anomaly` 4. A role whose query is
 missing is simply off.
@@ -45,30 +45,40 @@ The label name is an option (`horizonLabel`, default `horizon`).
 
 With only `actual` given and `quickStart: true`, the panel fits Holt-Winters in the browser: additive
 seasonality of one day when the history holds at least two days of samples, otherwise Holt's linear
-trend. It forecasts `horizon` (default `7d`) ahead with an 80% band from the one-step residuals, and
+trend. It forecasts `horizon` (default `7d`) ahead with an 80% band from the one-step residuals and the
+trend's standard error, and
 uses the one-step fitted values as the expected band over the history. The legend, the band label and
 the tooltip say "estimate". Precomputed `forecast`/`upper`/`lower` win over quick-start.
 
 ## Data model
 
 ```ts
-interface Point { t: number; v: number }          // ms, value
+interface Point {
+  t: number;
+  v: number;
+} // ms, value
 interface Model {
-  actual: Point[];                                 // downsampled for drawing
-  expected: Point[];                               // history (h = 0)
-  expectedUpper: Point[]; expectedLower: Point[];
-  forecast: Point[]; upper: Point[]; lower: Point[]; // future (h > 0), starting at the origin
-  origin?: number;                                 // "now": where history ends and forecast starts
+  actual: Point[]; // downsampled for drawing
+  expected: Point[]; // history (h = 0)
+  expectedUpper: Point[];
+  expectedLower: Point[];
+  forecast: Point[];
+  upper: Point[];
+  lower: Point[]; // future (h > 0), starting at the origin
+  origin?: number; // "now": where history ends and forecast starts
   anomalies: Anomaly[];
-  estimate: boolean;                               // quick-start
-  xDomain: [number, number];                       // dashboard start .. max(end, last forecast point)
+  estimate: boolean; // quick-start
+  xDomain: [number, number]; // dashboard start .. max(end, last forecast point)
 }
 interface Anomaly {
-  t: number; v: number;                            // on the actual line
-  expected?: number; deviation?: number;           // actual - expected
-  bandWidths?: number;                             // deviation / (upper - lower)
-  score?: number; reason: "score" | "band";
-  labels: Record<string, string>;                  // from the anomaly series, for the link
+  t: number;
+  v: number; // on the actual line
+  expected?: number;
+  deviation?: number; // actual - expected
+  bandWidths?: number; // deviation / (upper - lower)
+  score?: number;
+  reason: "score" | "band";
+  labels: Record<string, string>; // from the anomaly series, for the link
 }
 ```
 
@@ -120,7 +130,7 @@ spec: close({
 `dev/compose.yaml`: a Python generator writes 14 days of history as OpenMetrics, `promtool tsdb
 create-blocks-from openmetrics` loads it into Prometheus' data volume, then the generator serves the
 same functions live for Prometheus to scrape. Series: `kubelet_volume_stats_used_bytes` /
-`_capacity_bytes` for three PVCs, `forecast_value` / `forecast_upper` / `forecast_lower` with
+`_capacity_bytes` for two PVCs, `forecast_value` / `forecast_upper` / `forecast_lower` with
 `horizon`, and `log_anomaly_score{namespace,pod}`, with one spike and one drop injected. Perses
 v0.55.1 is provisioned with a demo dashboard.
 
