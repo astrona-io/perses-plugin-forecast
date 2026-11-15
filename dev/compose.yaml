@@ -6,7 +6,7 @@ name: perses-plugin-forecast
 services:
   # Writes 14 days of history as OpenMetrics, then exits.
   backfill:
-    image: docker.io/library/python:3.13-alpine
+    image: docker.io/library/python:3.15-alpine
     command: ["python", "-I", "/app/fake_metrics.py", "backfill", "/data"]
     volumes:
       - ./fake_metrics.py:/app/fake_metrics.py:ro,z
@@ -28,7 +28,7 @@ services:
 
   # Serves the same series live, continuing the history.
   fake-metrics:
-    image: docker.io/library/python:3.13-alpine
+    image: docker.io/library/python:3.15-alpine
     command: ["python", "-I", "/app/fake_metrics.py", "serve", "/data"]
     volumes:
       - ./fake_metrics.py:/app/fake_metrics.py:ro,z
