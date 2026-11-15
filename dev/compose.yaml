@@ -14,7 +14,7 @@ services:
 
   # Turns the history into Prometheus blocks, then exits.
   tsdb-init:
-    image: docker.io/prom/prometheus:v3.5.0
+    image: docker.io/prom/prometheus:v3.16.0
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
@@ -35,7 +35,7 @@ services:
       - history:/data:ro
 
   prometheus:
-    image: docker.io/prom/prometheus:v3.5.0
+    image: docker.io/prom/prometheus:v3.16.0
     # Starts once tsdb-init has loaded the history.
     entrypoint: ["/bin/sh", "-c"]
     command:
